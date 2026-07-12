@@ -1,0 +1,18 @@
+[package]
+name = "cosmos-topology"
+version = "0.1.0"
+edition = "2021"
+description = "Cosmos Topology System - Spatial topology for software architecture"
+authors = ["SolvensAmoris <propietario>"]
+license = "AGPL-3.0"
+repository = "https://github.com/SolvensAmoris/-Cosmos-"
+keywords = ["cosmos", "topology", "architecture", "dependency-management"]
+categories = ["development-tools", "no-std-compatible"]
+
+[dependencies]
+
+[dev-dependencies]
+
+[profile.release]
+opt-level = 3
+lto = true

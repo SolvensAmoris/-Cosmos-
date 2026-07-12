@@ -444,10 +444,10 @@ impl OrbitBand {
     /// Devuelve el rango de radio permitido para esta banda  
     pub fn radius_range(&self) -> std::ops::Range<f64> {  
         match self {  
-            OrbitBand::Core => 0.0..=10.0,  
-            OrbitBand::Logic => 10.1..=50.0,  
-            OrbitBand::Interface => 50.1..=100.0,  
-            OrbitBand::DeepSpace => 100.1..=f64::INFINITY,  
+            OrbitBand::Core => 0.0..10.1,  
+            OrbitBand::Logic => 10.1..50.1,  
+            OrbitBand::Interface => 50.1..100.1,  
+            OrbitBand::DeepSpace => 100.1..f64::MAX,  
         }  
     }
 }
@@ -883,7 +883,8 @@ mod tests {
         
         // Prohibido
         assert!(!flow_allowed(PlanetType::Storage, PlanetType::Interface));
-        assert!(!flow_allowed(PlanetType::Interface, PlanetType::Core));
+        assert!(!flow_allowed(PlanetType::Interface, PlanetType::Storage));
+        assert!(!flow_allowed(PlanetType::Interface, PlanetType::Operation));
     }
 
     #[test]
@@ -913,5 +914,208 @@ mod tests {
         
         assert!(PlanetType::Interface.is_valid_orbit(OrbitBand::Interface));
         assert!(!PlanetType::Interface.is_valid_orbit(OrbitBand::Logic));
+    }
+
+    #[test]
+    fn test_topology_error_display() {
+        let err = TopologyError::OrbitViolation;
+        assert!(!format!("{}", err).is_empty());
+        
+        let err = TopologyError::LightPathTooLong { distance: 10.0, reach: 5.0 };
+        assert!(format!("{}", err).contains("10.00"));
+        
+        let err = TopologyError::SpaghettiTensionExceeded { crossings: 15, threshold: 10 };
+        assert!(format!("{}", err).contains("15"));
+    }
+
+    #[test]
+    fn test_parser_error_display() {
+        let err = ParserError::UnexpectedToken;
+        assert!(!format!("{}", err).is_empty());
+        
+        let err = ParserError::InvalidFlowType;
+        assert!(format!("{}", err).contains("Primary"));
+    }
+
+    #[test]
+    fn test_semantic_error_display() {
+        let err = SemanticError::DuplicateNodeId(42);
+        assert!(format!("{}", err).contains("2a"));
+        
+        let err = SemanticError::InfiniteOrbitLoop { cycle: vec![1, 2, 3] };
+        assert!(format!("{}", err).contains("→"));
+    }
+
+    #[test]
+    fn test_semantic_error_from_topology() {
+        let topo_err = TopologyError::OrbitViolation;
+        let sem_err: SemanticError = topo_err.into();
+        assert!(matches!(sem_err, SemanticError::Topology(_)));
+    }
+
+    #[test]
+    fn test_flow_type_as_str() {
+        assert_eq!(FlowType::Primary.as_str(), "Primary");
+        assert_eq!(FlowType::Asynchronous.as_str(), "Asynchronous");
+        assert_eq!(FlowType::Read.as_str(), "Read");
+    }
+
+    #[test]
+    fn test_flow_type_from_str_valid() {
+        assert_eq!(FlowType::from_str("Primary").unwrap(), FlowType::Primary);
+        assert_eq!(FlowType::from_str("Asynchronous").unwrap(), FlowType::Asynchronous);
+        assert_eq!(FlowType::from_str("Read").unwrap(), FlowType::Read);
+    }
+
+    #[test]
+    fn test_flow_type_from_str_invalid() {
+        assert!(FlowType::from_str("Invalid").is_err());
+        assert!(FlowType::from_str("Sync").is_err());
+        assert!(FlowType::from_str("").is_err());
+    }
+
+    #[test]
+    fn test_flow_graph_find_cycle() {
+        let mut graph = FlowGraph::new();
+        graph.add_edge(1, 2);
+        graph.add_edge(2, 3);
+        graph.add_edge(3, 1);
+        
+        let cycle = graph.find_cycle();
+        assert!(cycle.is_some());
+        let c = cycle.unwrap();
+        assert!(c.len() >= 3);
+    }
+
+    #[test]
+    fn test_flow_graph_find_no_cycle() {
+        let mut graph = FlowGraph::new();
+        graph.add_edge(1, 2);
+        graph.add_edge(2, 3);
+        
+        assert!(graph.find_cycle().is_none());
+    }
+
+    #[test]
+    fn test_planet_type_allowed_orbits() {
+        let storage_orbits = PlanetType::Storage.allowed_orbits();
+        assert!(storage_orbits.contains(&OrbitBand::Logic));
+        assert!(!storage_orbits.contains(&OrbitBand::Interface));
+        
+        let interface_orbits = PlanetType::Interface.allowed_orbits();
+        assert!(interface_orbits.contains(&OrbitBand::Interface));
+        assert!(!interface_orbits.contains(&OrbitBand::Logic));
+    }
+
+    #[test]
+    fn test_polar_position_distance() {
+        let pos1 = PolarPosition { radius: 0.0, theta: 0.0 };
+        let pos2 = PolarPosition { radius: 10.0, theta: 0.0 };
+        let dist = pos1.distance(&pos2);
+        assert!(dist > 0.0);
+    }
+
+    #[test]
+    fn test_polar_position_to_cartesian() {
+        let pos = PolarPosition { radius: 1.0, theta: 0.0 };
+        let (x, y) = pos.to_cartesian();
+        assert!((x - 1.0).abs() < 0.001);
+        assert!(y.abs() < 0.001);
+    }
+
+    #[test]
+    fn test_validate_satellite_mass_ratio_valid() {
+        let result = validate_satellite_mass_ratio(100, 50); // 50% of 100
+        assert!(result.is_ok());
+        
+        let result = validate_satellite_mass_ratio(100, 0);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_validate_satellite_mass_ratio_invalid() {
+        let result = validate_satellite_mass_ratio(100, 51); // over 50%
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_calculate_satellites_mass() {
+        struct MockNode { mass: u32 }
+        impl TopologicalNode for MockNode {
+            fn position(&self) -> PolarPosition {
+                PolarPosition { radius: 0.0, theta: 0.0 }
+            }
+            fn mass(&self) -> u32 { self.mass }
+        }
+        
+        let satellites = vec![
+            MockNode { mass: 10 },
+            MockNode { mass: 20 },
+            MockNode { mass: 30 },
+        ];
+        
+        let total = calculate_satellites_mass(&satellites);
+        assert_eq!(total, 60);
+    }
+
+    #[test]
+    fn test_cosmos_topology_check_tension() {
+        struct MockNode { pos: PolarPosition }
+        impl TopologicalNode for MockNode {
+            fn position(&self) -> PolarPosition { self.pos }
+            fn mass(&self) -> u32 { 1 }
+        }
+        
+        // Create nodes in a line (no crosses)
+        let n1 = MockNode { pos: PolarPosition { radius: 10.0, theta: 0.0 } };
+        let n2 = MockNode { pos: PolarPosition { radius: 20.0, theta: 0.0 } };
+        let n3 = MockNode { pos: PolarPosition { radius: 30.0, theta: 0.0 } };
+        let n4 = MockNode { pos: PolarPosition { radius: 40.0, theta: 0.0 } };
+        
+        let connections: Vec<(&MockNode, &MockNode)> = vec![
+            (&n1, &n2),
+            (&n3, &n4),
+        ];
+        
+        let result = CosmosTopology::check_tension(&connections, 10);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_cir_error_display() {
+        let err = CirError::DeepSpaceViolation(42);
+        assert!(format!("{}", err).contains("2a"));
+        
+        let err = CirError::SerializationError("test".to_string());
+        assert!(format!("{}", err).contains("test"));
+    }
+
+    #[test]
+    fn test_orbit_band_radius_range() {
+        let range = OrbitBand::Core.radius_range();
+        assert!(range.contains(&0.0));
+        assert!(range.contains(&5.0));
+        assert!(!range.contains(&15.0));
+        
+        let range = OrbitBand::Logic.radius_range();
+        assert!(range.contains(&25.0));
+        
+        let range = OrbitBand::Interface.radius_range();
+        assert!(range.contains(&75.0));
+    }
+
+    #[test]
+    fn test_topological_node_trait() {
+        struct TestNode;
+        impl TopologicalNode for TestNode {
+            fn position(&self) -> PolarPosition {
+                PolarPosition { radius: 25.0, theta: 1.0 } // Logic band (10.1 - 50.0)
+            }
+            fn mass(&self) -> u32 { 100 }
+        }
+        
+        let node = TestNode;
+        assert_eq!(node.orbit(), OrbitBand::Logic);
+        assert_eq!(node.max_reach(), 1000.0 / 100.0); // BASE_CONSTANT / mass
     }
 }
