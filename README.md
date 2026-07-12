@@ -72,6 +72,7 @@ Solicitudes de acceso, colaboración o licencia: mensaje privado al propietario.
 - [Declaración Prior Art](./docs/DECLARACION-PRIOR-ART.md)
 - [Demostración: Cosmos vs React](./docs/DEMOSTRACION-REACT.md)
 - [Demostración: Cosmos vs Lodash](./docs/DEMOSTRACION-LODASH.md)
+- [Demostración: Cosmos vs TypeScript](./docs/DEMOSTRACION-TYPESCRIPT.md)
 
 ---
 
