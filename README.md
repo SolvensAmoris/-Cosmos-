@@ -62,10 +62,9 @@ Solicitudes de acceso, colaboración o licencia: mensaje privado al propietario.
 
 ### 📋 Documentación Pública
 
+- [RFC-0004: Especificación Completa](./rfc/rfc-0004-ESPECIFICACION-FINAL.md)
 - [RFC-0004: Gramática Formal](./rfc/rfc-0004-gramatica-formal.md)
-- [RFC-0004: Modelo Semántico](./rfc/rfc-0004-modelo-semantico.md)
 - [RFC-0004: Reglas de Validación](./rfc/rfc-0004-reglas-validacion.md)
-- [RFC-0008: Mapa de Gravedad](./rfc/rfc-0008-mapa-gravedad.md)
 - [Resumen de Auditoría](./docs/RESUMEN_AUDITORIA_Y_SEGURIDAD_20260712.md)
 - [Historial de Cambios](./docs/HISTORIAL_DE_CAMBIOS.md)
 - [Estados de Auditoría](./docs/ESTADOS_DE_AUDITORIA_G001_A_G007.md)
