@@ -11,9 +11,9 @@
 
 1. [Principios Fundacionales](#1-principios-fundacionales)
 2. [Estructura del Universo](#2-estructura-del-universo)
-3. [Gramática Formal](#3-gramática-formal)
+3. [Gramática Formal BNF](#3-gramática-formal-bnf)
 4. [Sistema de Órbitas](#4-sistema-de-órbitas)
-5. [Sistema de Restricción Temporal](#5-sistema-de-restricción-temporal)
+5. [Sistema de Restricción Temporal en Flujos](#5-sistema-de-restricción-temporal-en-flujos)
 6. [Sistema de Tipos de Flujo](#6-sistema-de-tipos-de-flujo)
 7. [Catálogo de Errores](#7-catálogo-de-errores)
 8. [Reglas de Validación](#8-reglas-de-validación)
@@ -95,7 +95,6 @@ Universe
 │   │   ├── position (obligatorio)
 │   │   ├── mass (opcional, default: 100)
 │   │   ├── type (opcional)
-│   │   ├── restringido_hasta (opcional)
 │   │   └── Satellite (múltiples)
 │   │       ├── position (relativo)
 │   │       └── mass (calculado)
@@ -104,73 +103,100 @@ Universe
 └── LightFlow (conexiones)
     ├── from (identificador)
     ├── to (identificador)
-    └── flow (tipo)
+    ├── flow (tipo)
+    └── restringido_hasta (opcional, solo en flujos)
 ```
 
 ---
 
-## 3. Gramática Formal
+## 3. Gramática Formal BNF
 
-### 3.1 Estructura Base
+### 3.1 Notación BNF
 
-```cosmos
-universe "NombreDelProyecto" {
-    metadata {
-        version: "1.0"
-        author: "Nombre del Autor"
-        standard: "Cosmos"
-    }
-    
-    sun NombreDelSun
-    
-    galaxy "NombreGalaxia" @ identificador_galaxia {
-        position: (radio, angulo)
-        
-        planet "NombrePlaneta" @ identificador_unico {
-            position: (radio, angulo)
-            mass: 100
-            type: Operation
-            restringido_hasta: 2027-01-01
-        }
-        
-        nebula "Agrupacion" {
-            planet "OtroPlaneta" @ otro_id {
-                position: (radio, angulo)
-            }
-        }
-    }
-    
-    light {
-        from: @identificador_origen
-        to: @identificador_destino
-        flow: Primary
-    }
-}
+```bnf
+<cosmos-file>       ::= "universe" <string> "{" <universe-body> "}"
+
+<universe-body>     ::= <metadata> <sun-declaration> <galaxy-declaration>* <light-declaration>*
+
+<metadata>          ::= "metadata" "{" 
+                          "version:" <string> 
+                          "author:" <string> 
+                          "standard:" "Cosmos" 
+                          "}"
+
+<sun-declaration>   ::= "sun" <identifier>
+
+<galaxy-declaration>::= "galaxy" <string> <galaxy-body>
+
+<galaxy-body>       ::= "{" <position> <entity-declaration>* "}"
+
+<entity-declaration>::= <planet-declaration> | <nebula-declaration>
+
+<planet-declaration>::= "planet" <string> <orbit-identifier> "{" <planet-body> "}"
+
+<planet-body>       ::= <position> <mass>? <type>? <satellite-declaration>*
+
+<satellite-declaration>::= "satellite" <string> <orbit-identifier> "{" 
+                             <relative-position> <satellite-body>* 
+                             "}"
+
+<satellite-body>    ::= <relative-position> <satellite-body>*
+
+<nebula-declaration>::= "nebula" <string> "{" <planet-declaration>* "}"
+
+<position>          ::= "position:" "(" <number> "," <number> ")"
+
+<relative-position> ::= "position:" "(" <number> "," <number> ")"
+
+<mass>              ::= "mass:" <integer>
+
+<type>              ::= "type:" <planet-type>
+
+<planet-type>       ::= "Core" | "Operation" | "Compute" | "Storage" | "Interface"
+
+<orbit-identifier>  ::= "@" <identifier>
+
+<light-declaration> ::= "light" "{" <light-from> <light-to> <light-flow> <expiry>? "}"
+
+<light-from>        ::= "from:" <orbit-identifier>
+
+<light-to>          ::= "to:" <orbit-identifier>
+
+<light-flow>        ::= "flow:" <flow-type>
+
+<expiry>            ::= "restringido_hasta:" <date>
+
+<flow-type>         ::= "Primary" | "Asynchronous" | "Read"
+
+<date>              ::= <year> "-" <month> "-" <day>
+<year>              ::= <digit>{4}
+<month>             ::= <digit>{2}
+<day>               ::= <digit>{2}
+
+<identifier>        ::= <letter> (<letter> | <digit> | "_")*
+<string>            ::= "\"" <char>* "\""
+<number>            ::= <integer> | <float>
+<integer>           ::= <digit>+
+<float>             ::= <integer> "." <digit>+
+<letter>            ::= "a".."z" | "A".."Z"
+<digit>             ::= "0".."9"
 ```
 
 ### 3.2 Tokens Reservados
 
 ```
-UNIVERSE, UNIVERSE
-METADATA, METADATA
-SUN, sun
-GALAXY, galaxy
-PLANET, planet
-NEBULA, nebula
-SATELLITE, satellite
-POSITION, position
-MASS, mass
-TYPE, type
-RESTRINGIDO_HASTA, restringido_hasta
-LIGHT, light
-FROM, from
-TO, to
-FLOW, flow
-USA, usa
-PRIMARY, ASYNCHRONOUS, READ
-CORE, LOGIC, INTERFACE, DEEPSPACE
-PERMITIDO, DENEGADO
-OPERATION, COMPUTE, STORAGE, INTERFACE_TYPE
+universe, universe
+metadata
+sun
+galaxy, nebula
+planet, satellite
+position, mass, type
+orbit, usa
+light, from, to, flow
+restringido_hasta
+Primary, Asynchronous, Read
+Core, Operation, Compute, Storage, Interface
+Permitido, Denegado
 ```
 
 ### 3.3 Tipos de Entidades
@@ -196,45 +222,62 @@ OPERATION, COMPUTE, STORAGE, INTERFACE_TYPE
 
 ## 4. Sistema de Órbitas
 
-### 4.1 Bandas Orbitales (Calculadas por Posición)
+### 4.1 Definición Formal
 
-| Banda | Rango de Radio | Órbita | Descripción |
-|-------|---------------|--------|-------------|
-| **Core** | 0.0 - 10.0 | 5 | Lógica central inmutable |
-| **Logic** | 10.1 - 50.0 | 4 | Lógica de negocio |
-| **Logic** | 50.1 - 100.0 | 3 | Servicios auxiliares |
-| **Interface** | 100.1 - ∞ | 1 | Capa de entrada/salida |
-| **DeepSpace** | > 100.0 | 0 | Prohibido (Error E007) |
+Las **órbitas** son valores numéricos enteros ≥1 que representan niveles jerárquicos de privilegio y cercanía al centro del sistema.
 
-### 4.2 Regla de Acceso Entre Órbitas
+**Regla fundamental:** Un número menor de órbita = mayor privilegio = mayor cercanía al centro.
 
-> **REGLA ORO:** Solo se puede acceder desde órbitas superiores (números menores) a órbitas inferiores (números mayores), siguiendo el flujo gravitacional natural.
+| Valor | Banda | Radio (calculado) | Privilegio | Descripción |
+|-------|-------|-------------------|-----------|-------------|
+| **5** | Core | 0.0 - 10.0 | Máximo | Reglas fundamentales, estado inmutable |
+| **4** | Logic | 10.1 - 50.0 | Alto | Lógica de negocio, decisiones |
+| **3** | Service | 50.1 - 100.0 | Medio | Servicios auxiliares, helpers |
+| **2** | Data | 100.1 - 200.0 | Bajo | Procesamiento de datos |
+| **1** | Interface | > 200.0 | Mínimo | Capa de entrada/salida, APIs externas |
+
+**Nota:** El radio se calcula a partir de la posición. La órbita se INFIERE del radio.
+
+### 4.2 Cálculo de Órbita
+
+```cosmos
+función calcular_orbita(radio):
+    si radio <= 10.0:          return 5  // Core
+    sino si radio <= 50.0:     return 4  // Logic
+    sino si radio <= 100.0:    return 3  // Service
+    sino si radio <= 200.0:    return 2  // Data
+    sino:                      return 1  // Interface
+```
+
+### 4.3 Regla de Acceso Entre Órbitas
+
+> **REGLA ORO:** Un nivel de órbita menor PUEDE acceder a niveles mayores, pero NUNCA al revés.
 
 ```
-Flujo PERMITIDO (órbitas superiores → inferiores):
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Orbit 5 (Core)    ← Mayor nivel de abstracción
-    ↓
-Orbit 4 (Logic)   ← Lógica de negocio
-    ↓
-Orbit 3 (Service) ← Servicios auxiliares
-    ↓
-Orbit 2 (Data)    ← Procesamiento
-    ↓
-Orbit 1 (Interface) ← Capa de entrada/salida
+Acceso PERMITIDO:  1 → 2 → 3 → 4 → 5
+                    ↓   ↓   ↓   ↓   ↓
+                  Interface → Data → Service → Logic → Core
+                 (mayor)                                                    (menor privilegio)
+
+Acceso DENEGADO:   5 → 4 → 3 → 2 → 1
+                    ↓   ↓   ↓   ↓   ↓
+                  Core → Logic → Service → Data → Interface
+                 (menor)                                                    (mayor privilegio)
 ```
 
-### 4.3 Tabla de Accesos Permitidos
+### 4.4 Tabla de Accesos
 
 | Desde \ Hacia | Orbit 5 (Core) | Orbit 4 (Logic) | Orbit 3 (Service) | Orbit 2 (Data) | Orbit 1 (Interface) |
-|---------------|----------------|-----------------|------------------|----------------|-------------------|
-| **Orbit 5** | ❌ Auto-ref | ✅ | ✅ | ✅ | ✅ |
-| **Orbit 4** | ❌ | ❌ Auto-ref | ✅ | ✅ | ✅ |
-| **Orbit 3** | ❌ | ❌ | ❌ Auto-ref | ✅ | ✅ |
-| **Orbit 2** | ❌ | ❌ | ❌ | ❌ Auto-ref | ✅ |
-| **Orbit 1** | ❌ | ❌ | ❌ | ❌ | ❌ Auto-ref |
+|---------------|:--------------:|:---------------:|:----------------:|:--------------:|:-------------------:|
+| **Orbit 1** | ❌ | ❌ | ❌ | ❌ | ❌ |
+| **Orbit 2** | ❌ | ❌ | ❌ | ❌ | ✅ |
+| **Orbit 3** | ❌ | ❌ | ❌ | ✅ | ✅ |
+| **Orbit 4** | ❌ | ❌ | ✅ | ✅ | ✅ |
+| **Orbit 5** | ❌ | ✅ | ✅ | ✅ | ✅ |
 
-### 4.4 Ejemplos de Acceso
+**Leyenda:** `❌` = Denegado | `✅` = Permitido
+
+### 4.5 Ejemplos de Acceso Válido
 
 ```cosmos
 universe "DemoOrbitas" {
@@ -243,169 +286,178 @@ universe "DemoOrbitas" {
     galaxy "Sistema" {
         position: (50.0, 0.0)
         
-        // Orbit 5 (Core) - posición 5.0
+        // Orbit 5 (Core) - radio 5.0
         planet Reglas @ reglas_core {
             position: (5.0, 0.0)
             type: Core
         }
         
-        // Orbit 4 (Logic) - posición 25.0
+        // Orbit 4 (Logic) - radio 25.0
         planet Servicio @ servicio_logico {
             position: (25.0, 0.0)
-            type: Operation
-            usa @ reglas_core  // ✅ PERMITIDO: Logic(4) → Core(5)
+            usa @ reglas_core  // ✅ 4 → 5: menor accede a mayor
         }
         
-        // Orbit 3 (Service) - posición 50.0
+        // Orbit 3 (Service) - radio 75.0
         planet Util @ util_servicio {
-            position: (50.0, 0.0)
-            usa @ servicio_logico  // ✅ PERMITIDO: Service(3) → Logic(4)
-            usa @ reglas_core      // ✅ PERMITIDO: Service(3) → Core(5)
-        }
-        
-        // Orbit 4 accediendo desde Orbit 3
-        planet Manager @ manager {
-            position: (30.0, 0.0)
-            usa @ servicio_logico  // ✅ PERMITIDO
+            position: (75.0, 0.0)
+            usa @ servicio_logico  // ✅ 3 → 4: menor accede a mayor
+            usa @ reglas_core       // ✅ 3 → 5: menor accede a mayor
         }
     }
     
+    // Flujo desde Core(5) hacia Logic(4)
     light {
-        from: @reglas_core
-        to: @servicio_logico
-        flow: Primary  // ✅ Core → Logic = flujo natural
+        from: @reglas_core        // Orbit 5
+        to: @servicio_logico     // Orbit 4
+        flow: Primary            // ✅ 5 → 4: flujo gravitacional
     }
 }
 ```
 
-### 4.5 Errores de Acceso
+### 4.6 Ejemplo de Acceso Inválido
 
 ```cosmos
 // ❌ INVÁLIDO - Error E001: OrbitViolation
-planet Reglas @ reglas_core {
-    position: (5.0, 0.0)
-    usa @ servicio_logico  // ❌ Logic(4) → Core(5) = INVÁLIDO
+light {
+    from: @util_servicio      // Orbit 3
+    to: @reglas_core          // Orbit 5
+    flow: Primary            // ❌ 3 → 5: ACCESO DENEGADO
 }
+// Error: Un nivel menor (3) no puede acceder a un nivel mayor (5)
 ```
+
+### 4.7 Notas de Implementación
+
+1. **El valor de órbita es INMUTABLE** una vez asignado desde la posición.
+2. **La verificación ocurre en tiempo de compilación** para todos los `light`.
+3. **Las referencias `usa`** dentro de un Planet también deben respetar la regla.
+4. **No hay excepciones** a la regla de acceso orbital.
 
 ---
 
-## 5. Sistema de Restricción Temporal
+## 5. Sistema de Restricción Temporal en Flujos
 
-### 5.1 Definición
+### 5.1 Definición Formal
 
-El modificador `restringido_hasta` indica que una entidad tiene acceso limitado en el tiempo. Una vez pasada la fecha, el acceso a esa entidad es automáticamente DENEGADO.
+`restringido_hasta` es un modificador de **flujo** (`light`) que indica autorización temporal. Es una excepción controlada que permite un flujo que de otra forma estaría prohibido por la regla de órbitas.
 
-### 5.2 Sintaxis
+**Restricciones:**
+- ✅ Solo se define en `light` (flujos), no en elementos.
+- ✅ Requiere formato AAAA-MM-DD.
+- ✅ Al vencer la fecha, el flujo se bloquea AUTOMÁTICAMENTE.
+- ✅ No cambia la regla de órbitas; solo la suspende temporalmente.
+
+### 5.2 Sintaxis BNF
+
+```
+<expiry> ::= "restringido_hasta:" <date>
+<date>   ::= <year> "-" <month> "-" <day>
+<year>   ::= <digit>{4}    // 2026, 2027, etc.
+<month>  ::= <digit>{2}    // 01-12
+<day>    ::= <digit>{2}    // 01-31
+```
+
+### 5.3 Ubicación en la Gramática
 
 ```cosmos
-planet "ServicioExpirable" @ servicio_expirable {
-    position: (25.0, 0.0)
-    mass: 100
-    restringido_hasta: 2027-01-01
+light {
+    from: @identificador_origen
+    to: @identificador_destino
+    flow: Primary
+    restringido_hasta: 2027-12-31  // ← SOLO AQUÍ, no en elementos
 }
 ```
 
-### 5.3 Comportamiento
+### 5.4 Comportamiento
 
-| Fase | Comportamiento |
-|------|---------------|
-| **Antes de fecha** | Entidad completamente accesible. Los `LightFlow` funcionan normalmente. |
-| **En fecha límite** | Último día de acceso completo. |
-| **Después de fecha** | Acceso AUTOMÁTICAMENTE DENEGADO. Error E401. |
+| Fase | Estado del Flujo |
+|------|-----------------|
+| **Antes de fecha límite** | Flujo PERMITIDO, funciona normalmente |
+| **En fecha límite** | Último día de funcionamiento |
+| **Después de fecha límite** | Flujo BLOQUEADO automáticamente (Error E401) |
 
-### 5.4 Registro de Autorización
-
-```
-╔═══════════════════════════════════════════════════════════════════╗
-║              REGISTRO DE AUTORIZACIÓN TEMPORAL              ║
-╠═══════════════════════════════════════════════════════════════════╣
-║  Universe: MiProyecto                                        ║
-║  Generado: 2026-07-12T10:00:00Z                            ║
-╠═══════════════════════════════════════════════════════════════════╣
-║  ENTIDAD                    │ FECHA_LÍMITE │ ESTADO            ║
-║  ─────────────────────────────────────────────────────────── ║
-║  @ servicio_legacy_v1      │ 2026-12-31   │ ACTIVO           ║
-║  @ api_transicion          │ 2027-06-30   │ ACTIVO           ║
-║  @ modulo_beta             │ 2026-07-15   │ ⚠️ EXPIRADO       ║
-║  @ licencia_temporal       │ 2026-08-01   │ ACTIVO           ║
-╠═══════════════════════════════════════════════════════════════════╣
-║  TOTAL ENTIDADES: 4                                          ║
-║  ACTIVAS: 3 | EXPIRADAS: 1                                 ║
-╚═══════════════════════════════════════════════════════════════════╝
-```
-
-### 5.5 Reglas de Caducidad
-
-1. **Verificación en compilación:** Si `restringido_hasta < fecha_actual`, el parser genera Warning W001.
-2. **Verificación en ejecución:** Cada `LightFlow` verifica la fecha límite antes de permitir el flujo.
-3. **Renewal:** Para renovar, se debe especificar una nueva fecha o remover `restringido_hasta`.
-4. **Herencia:** Los Satellites heredan la restricción del Planet padre, a menos que especifiquen la suya.
-
-### 5.6 Ejemplo Completo
+### 5.5 Casos de Uso
 
 ```cosmos
-universe "SistemaConLicencias" {
-    metadata {
-        version: "1.0"
-        author: "Licensor"
-        standard: "Cosmos"
-    }
-    
-    sun NucleoLicencias
-    
-    galaxy "Modulos" {
-        position: (50.0, 0.0)
-        
-        // Módulo con licencia hasta 2027
-        planet ModuloPremium @ modulo_premium {
-            position: (25.0, 0.0)
-            mass: 100
-            restringido_hasta: 2027-12-31
-        }
-        
-        // Módulo expirado (genera warning)
-        planet ModuloLegacy @ modulo_legacy {
-            position: (35.0, 0.0)
-            restringido_hasta: 2025-01-01  // ⚠️ YA EXPIRADO
-        }
-        
-        // Módulo sin restricción (permanente)
-        planet ModuloBase @ modulo_base {
-            position: (15.0, 0.0)
-            // Sin restringido_hasta = acceso permanente
-        }
-        
-        // Satellite hereda restricción
-        satellite "SubModulo" @ sub_modulo {
-            position: (26.0, 0.0)  // Relativo al padre
-            usa @ modulo_premium  // Hereda la fecha límite
-        }
-    }
-    
-    // Flujo permitido mientras esté activo
-    light {
-        from: @modulo_base
-        to: @modulo_premium
-        flow: Primary
-    }
-    
-    // Flujo denegado: entidad expirada
-    light {
-        from: @modulo_base
-        to: @modulo_legacy  // ⚠️ COMPILA con warning
-                             // ❌ RECHAZADO en ejecución
-        flow: Primary
-    }
+// Caso 1: Transición gradual
+// Permite usar API Legacy mientras se migra a nueva API
+light {
+    from: @cliente_legacy        // Orbit 4
+    to: @api_moderna            // Orbit 3
+    flow: Primary
+    restringido_hasta: 2027-06-30  // Hasta que migración complete
 }
+// ✅ Flujo permitido temporalmente (3 → 4 normalmente denegado)
+
+// Caso 2: Licencia temporal
+light {
+    from: @sistema_principal
+    to: @modulo_premium
+    flow: Primary
+    restringido_hasta: 2026-12-31
+}
+// ✅ Permite acceso temporal a módulo con licencia
+
+// Caso 3: Deprecación programada
+light {
+    from: @nuevo_servicio
+    to: @old_adapter           // Adapter deprecated
+    flow: Asynchronous
+    restringido_hasta: 2026-03-01
+}
+// ✅ old_adapter funciona hasta fecha de deprecación
 ```
 
-### 5.7 Errores Relacionados
+### 5.6 Verificación de Caducidad
+
+| Momento | Verificación |
+|---------|-------------|
+| **Compilación** | Warning W001 si `restringido_hasta < fecha_actual` |
+| **Ejecución** | Bloqueo automático si `fecha_actual > restringido_hasta` |
+
+```bash
+# Compilación
+$ cosmos compile proyecto.cosmos
+Warning W001: Flow "@legacy_flow" expires on 2025-01-01 (already expired)
+
+# Ejecución (si se intenta usar flujo expirado)
+Error E401: Flow "@legacy_flow" blocked - authorization expired on 2025-01-01
+```
+
+### 5.7 Registro de Autorización Temporal
+
+```
+╔═══════════════════════════════════════════════════════════════════════╗
+║              REGISTRO DE AUTORIZACIONES TEMPORALES              ║
+╠═══════════════════════════════════════════════════════════════════════╣
+║  Universe: MiSistema                                             ║
+║  Generado: 2026-07-12T00:00:00Z                                 ║
+╠═══════════════════════════════════════════════════════════════════════╣
+║  FLUJO                    │ DESDE    │ HASTA      │ FECHA_LÍMITE  ║
+║  ─────────────────────────────────────────────────────────────────── ║
+║  @ flujo_legacy          │ Orbit 4  │ Orbit 3    │ 2027-06-30   ║
+║  @ licencia_modulo       │ Orbit 5  │ Orbit 4    │ 2026-12-31   ║
+║  @ adapter_deprecated    │ Orbit 3  │ Orbit 2    │ ⚠️ 2025-01-01 ║
+╠═══════════════════════════════════════════════════════════════════════╣
+║  TOTAL FLUJOS RESTRINGIDOS: 3                                      ║
+║  ACTIVOS: 2 | EXPIRADOS: 1                                        ║
+╚═══════════════════════════════════════════════════════════════════════╝
+```
+
+### 5.8 Errores Relacionados
 
 | Código | Nombre | Descripción |
 |--------|--------|-------------|
-| W001 | TemporalAccessExpired | Entidad con `restringido_hasta` vencida |
-| E401 | AmbiguousReference | Acceso denegado por expiración |
+| W001 | TemporalAccessExpired | Flujo con `restringido_hasta` ya vencido |
+| E401 | FlowAuthorizationExpired | Acceso denegado: fecha límite superada |
+
+### 5.9 Notas de Implementación
+
+1. **`restringido_hasta` NO anula la regla de órbitas**, solo la suspende temporalmente.
+2. **La fecha se verifica en cada ejecución**, no solo en compilación.
+3. **Renovación**: Para renovar, actualizar la fecha; para hacer permanente, remover el modificador.
+4. **Múltiples flujos**: Cada flujo tiene su propia fecha límite independiente.
 
 ---
 
