@@ -46,11 +46,11 @@
 
 ---
 
-### 🔐 Seguridad
+### 🔐 Seguridad y Licencia
 
-- **Código fuente:** Acceso restringido al propietario
+- **Licencia base:** AGPL-3.0 + Excepción Comercial
 - **Documentos RFC:** CC BY-NC-ND 4.0
-- **Licencia:** Propósito específico con acuerdo de confidencialidad
+- **Código fuente:** Restringido hasta protección legal
 
 ---
 
@@ -69,6 +69,7 @@ Solicitudes de acceso, colaboración o licencia: mensaje privado al propietario.
 - [Resumen de Auditoría](./docs/RESUMEN_AUDITORIA_Y_SEGURIDAD_20260712.md)
 - [Historial de Cambios](./docs/HISTORIAL_DE_CAMBIOS.md)
 - [Estados de Auditoría](./docs/ESTADOS_DE_AUDITORIA_G001_A_G007.md)
+- [Declaración Prior Art](./docs/DECLARACION-PRIOR-ART.md)
 
 ---
 
