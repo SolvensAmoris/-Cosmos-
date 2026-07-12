@@ -76,6 +76,7 @@ Solicitudes de acceso, colaboración o licencia: mensaje privado al propietario.
 - [Demostración: Cosmos vs Axios](./docs/DEMOSTRACION-AXIOS.md)
 - [Demostración: Cosmos vs Express/Multer](./docs/DEMOSTRACION-EXPRESS.md)
 - [Demostración: Cosmos vs Jest/Vitest](./docs/DEMOSTRACION-JEST.md)
+- [Demostración: Cosmos vs Moment/date-fns](./docs/DEMOSTRACION-MOMENT.md)
 
 ---
 
