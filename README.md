@@ -1,18 +1,16 @@
-# -Cosmos- | Firme
+# El fin de la era de los parches: orden topológico para el software
 
-## El fin de la era de los parches: orden físico para el software
-
-> *"Otros arreglan el desorden. Nosotros pusimos la gravedad."*
+> "Otros arreglan el desorden. Nosotros definimos las leyes que lo evitan."
 
 ---
 
 ### ✅ Problemas resueltos
 
-| Problema | Descripción | Solución Cosmos |
-|----------|-------------|-----------------|
-| **Diamante de la Muerte** | Dependencias con versiones conflictivas que rompen el sistema | Coexistencia sin conflictos mediante aislamiento galáctico |
-| **Actualización Fantasma** | Cambios no autorizados en librerías externas | Huella criptográfica bloquea modificaciones no declaradas |
-| **Funciona en mi máquina** | Comportamiento diferente entre entornos | Ejecución determinista verificada en compilación |
+| Problema | Descripción | Enfoque propuesto por Cosmos |
+|---|---|---|
+| **Diamante de la Muerte** | Conflictos entre versiones que rompen el sistema | Elimina ambigüedad: se accede solo por `NodeId` único, nunca solo por nombre |
+| **Actualización Fantasma** | Cambios no autorizados o no declarados | Integridad por identidad inmutable y validación obligatoria |
+| **"Funciona en mi máquina"** | Comportamiento distinto entre entornos | Resultado definido por estructura, no por configuraciones externas |
 
 ---
 
@@ -28,19 +26,23 @@
 
 ---
 
-### 🛡️ Auditoría
+### 📋 CUMPLIMIENTO DE REGLAS INTERNAS
 
-**Observaciones G-001 a G-007:** TODAS RESUELTAS
+> *Valida que la especificación coincida con su propio diseño. No es auditoría externa independiente.*
 
-| Observación | Estado | Fecha |
-|-------------|--------|-------|
-| G-001: Sol automático | ✅ | 2026-07-12 |
-| G-002: Separación Nombre/NodeId | ✅ | 2026-07-12 |
-| G-003: Primacía Geométrica | ✅ | 2026-07-12 |
-| G-004: Sistema de tipos | ✅ | 2026-07-12 |
-| G-005: Conexiones extensibles | ✅ | 2026-07-12 |
-| G-006: Nebulas como organizadores | ✅ | 2026-07-12 |
-| G-007: Metadatos obligatorios | ✅ | 2026-07-12 |
+| Principio | Estado | Fecha |
+|---|---|---|
+| G‑001: Unicidad del origen `Sun` | ✅ Definido | 2026‑07‑12 |
+| G‑002: Separación Nombre / `NodeId` | ✅ Definido | 2026‑07‑12 |
+| G‑003: Primacía de posición topológica | ✅ Definido | 2026‑07‑12 |
+| G‑004: Independencia de tipos externos | ✅ Definido | 2026‑07‑12 |
+| G‑005: Flujos vectoriales definidos | ✅ Definido | 2026‑07‑12 |
+| G‑006: Nebulas solo agrupadoras | ✅ Definido | 2026‑07‑12 |
+| G‑007: Metadatos obligatorios | ✅ Definido | 2026‑07‑12 |
+
+> ⚠️ Nota: Solo confirma coherencia interna. Pruebas reales y revisión externa se harán después. El validador solo revisa que no haya contradicciones.
+
+> ℹ️ La implementación del compilador y núcleo está en desarrollo y repositorio privado hasta su protección legal.
 
 ---
 
