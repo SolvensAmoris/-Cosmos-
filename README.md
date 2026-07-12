@@ -70,6 +70,7 @@ Solicitudes de acceso, colaboración o licencia: mensaje privado al propietario.
 - [Historial de Cambios](./docs/HISTORIAL_DE_CAMBIOS.md)
 - [Estados de Auditoría](./docs/ESTADOS_DE_AUDITORIA_G001_A_G007.md)
 - [Declaración Prior Art](./docs/DECLARACION-PRIOR-ART.md)
+- [Demostración: Cosmos vs React](./docs/DEMOSTRACION-REACT.md)
 
 ---
 
