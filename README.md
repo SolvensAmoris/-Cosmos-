@@ -81,6 +81,7 @@ Solicitudes de acceso, colaboración o licencia: mensaje privado al propietario.
 - [Demostración: Cosmos vs Webpack 4/5 Plugin Hell](./docs/DEMOSTRACION-WEBPACK.md)
 - [Demostración: Cosmos vs React Router v5 vs v6](./docs/DEMOSTRACION-REACT-ROUTER.md)
 - [Demostración: Cosmos vs NumPy 1.26 vs 2.0 (Python)](./docs/DEMOSTRACION-NUMPY-PYTHON.md)
+- [Demostración: Cosmos vs Django 3.2 vs 4.2 (Python)](./docs/DEMOSTRACION-DJANGO-PYTHON.md)
 
 ---
 
