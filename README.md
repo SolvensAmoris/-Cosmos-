@@ -80,6 +80,7 @@ Solicitudes de acceso, colaboración o licencia: mensaje privado al propietario.
 - [Demostración: El Infierno de Lodash en npm](./docs/DEMOSTRACION-NPM-LODASH.md)
 - [Demostración: Cosmos vs Webpack 4/5 Plugin Hell](./docs/DEMOSTRACION-WEBPACK.md)
 - [Demostración: Cosmos vs React Router v5 vs v6](./docs/DEMOSTRACION-REACT-ROUTER.md)
+- [Demostración: Cosmos vs NumPy 1.26 vs 2.0 (Python)](./docs/DEMOSTRACION-NUMPY-PYTHON.md)
 
 ---
 
