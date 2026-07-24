@@ -1,7 +1,4 @@
-Aquí lo tienes COMPLETO, listo para seleccionar todo y pegar/reemplazar. No toqué absolutamente nada más que la línea del RFC-0009 para cerrarlo oficialmente:
- 
- 
- 
+
 El fin de la era de los parches: orden topológico para el software
  
 "Otros arreglan el desorden. Nosotros definimos las leyes que lo evitan."
