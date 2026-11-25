@@ -44,7 +44,7 @@ especificación coincida con la única implementación que valida topología
 | # | Decisión | Texto anterior | Razón |
 |---|----------|----------------|-------|
 | D1 | **Bandas: 4, no 5.** Core 0–10, Logic 10.1–50, Interface 50.1–100, DeepSpace >100 prohibido. | §4 tenía 5 bandas (Service 50.1–100, Data 100.1–200, Interface >200). | El Rust implementa 4 bandas y el propio catálogo de errores del texto anterior (E007, banda prohibida >100) ya decía 4. Un radio de 150 era válido en el §4 e inválido en E007. |
-| D2 | **La regla de acceso se parte en dos.** `usa` (dependencia): hacia adentro, el objetivo debe estar en una órbita de número mayor o igual. `light` (flujo): lo gobiernan la matriz de tipos (§7) y el alcance (§5 de acceso), no hay regla de dirección por órbita. | La "REGLA ORO" (el menor accede al mayor) y la tabla §4.4 decían lo contrario, y el ejemplo permitía un flujo 5 → 4. | Con dos reglas, todos los ejemplos del documento son válidos a la vez: `usa` 4 → 5, 3 → 4, 3 → 5; `light` 5 → 4. Una sola regla no podía cubrirlos. |
+| D2 | **La regla de acceso se parte en dos.** `usa` (dependencia): hacia adentro, el objetivo debe estar en una órbita de número mayor o igual. `light` (flujo): lo gobiernan la matriz de tipos (§7) y el alcance (§5 de acceso), no hay regla de dirección por órbita. | La "REGLA ORO" (el menor accede al mayor) y la tabla §4.4 decían lo contrario, y el ejemplo permitía un flujo 5 → 4. | Con dos reglas, todos los ejemplos alcanzables del documento son válidos a la vez: `usa` 3 → 4, 4 → 4; `light` 5 → 4. Una sola regla no podía cubrirlos. (Los casos `usa` 4 → 5 y 3 → 5 del texto viejo son vacuos: ningún planeta puede estar en Core, ver §5.1.) |
 | D3 | **No existe el tipo de planeta `Core`.** `PlanetType` = Storage, Operation, Compute, Interface. La banda Core es solo del Sol. | §3.4 listaba `Core` como tipo de planeta y el ejemplo tenía planetas de tipo `Core`. | El Rust no tiene variante `Core` en `PlanetType`, y todos los tipos exigen Logic o Interface. Un planeta de tipo `Core` no es representable en la implementación. |
 | D4 | **`mass` y `type` son obligatorios en cada planeta.** No hay masa por defecto. | La BNF los marcaba opcionales y §2 decía "default: 100". | P007/P008 (campo `mass`/`type` faltante) ya existían en el código, y sin `type` la matriz de flujos no se puede evaluar. |
 | D5 | **`restringido_hasta` solo va en flujos `light`.** Nunca en planetas. | §5.1 lo decía, pero el ejemplo lo ponía en un planeta. | Se mueve la caducidad del ejemplo a su flujo. |
@@ -378,27 +378,41 @@ contradecía; aquí quedan separadas.
 > número mayor (más cercanas al núcleo). Nunca de órbitas de número menor.
 
 ```
-usa PERMITIDO:  3 → 3, 3 → 4, 3 → 5, 4 → 4, 4 → 5, 5 → 5
-usa DENEGADO:   4 → 3, 5 → 4, 5 → 3, 4 → 2, ...
+usa PERMITIDO:  3 → 3, 3 → 4, 4 → 4
+usa DENEGADO:   4 → 3
 ```
 
+Solo los planetas pueden ser origen y destino de `usa`, y solo en las
+órbitas 3 y 4. Los casos 3 → 5, 4 → 5 y 5 → 5 son **vacuos**: ningún
+planeta puede estar en la órbita 5 (Core es solo del Sol, D3), así que
+ningún `usa` puede apuntar a la órbita 5 ni originarse en ella. La
+tabla de la v1.0 los listaba como alcanzables; no lo son.
+
 - El objetivo debe existir (E103) y estar en la misma galaxia (E403).
+- El objetivo debe ser un planeta o un satélite. Una Star no es objetivo
+  válido de `usa` (E103): no tiene galaxia ni banda.
 - Un `usa` que apunta a una órbita menor es error E001.
 - El grafo de dependencias no puede tener ciclos (E404).
 - Un satélite solo puede usar `usa` hacia nodos de su misma galaxia
   (E106 si apunta fuera).
 
+Fragmentos ilustrativos (el ejemplo completo y verificable está en §11):
+
 ```cosmos
-// ✅ 4 → 5: Logic depende de Core
-planet "Servicio" @servicio_logico {
-    position: (25.0, 0.0)
-    usa @reglas_core
+// ✅ 3 → 4: Interface depende de Logic
+planet "Componente" @comp {
+    position: (55.0, 0.0)
+    mass: 100
+    type: Interface
+    usa @react
 }
 
-// ❌ E001: 3 → 4 no es el problema; 4 → 3 sí lo es
-planet "Nucleo" @nucleo {
-    position: (5.0, 0.0)
-    usa @util_servicio  // Error E001: Core no depende de Interface
+// ❌ E001: 4 → 3, Logic no depende de Interface
+planet "Motor" @motor {
+    position: (25.0, 0.0)
+    mass: 20
+    type: Operation
+    usa @pantalla  // Error E001: dependencia hacia afuera
 }
 ```
 
@@ -500,7 +514,7 @@ light {
     from: @nuevo_servicio
     to: @old_adapter
     flow: Asynchronous
-    restringido_hasta: 2026-03-01
+    restringido_hasta: 2027-03-01
 }
 ```
 
@@ -533,10 +547,10 @@ Error E401: Flow "@legacy_flow" blocked - authorization expired on 2025-01-01
 ║  ─────────────────────────────────────────────────────────────────── ║
 ║  @ flujo_legacy          │ Orbit 4  │ Orbit 3    │ 2027-06-30   ║
 ║  @ licencia_modulo       │ Orbit 5  │ Orbit 4    │ 2026-12-31   ║
-║  @ adapter_deprecated    │ Orbit 3  │ Orbit 2    │ ⚠️ 2025-01-01 ║
+║  @ adapter_deprecated    │ Orbit 3  │ Orbit 2    │ 2027-03-01   ║
 ╠═══════════════════════════════════════════════════════════════════════╣
 ║  TOTAL FLUJOS RESTRINGIDOS: 3                                      ║
-║  ACTIVOS: 2 | EXPIRADOS: 1                                        ║
+║  ACTIVOS: 3 | EXPIRADOS: 0                                        ║
 ╚═══════════════════════════════════════════════════════════════════════╝
 ```
 
